@@ -1,0 +1,7 @@
+python-dotenv
+langchain
+langchain-openai
+openai
+llama-index
+sentence-transformers
+qdrant-client

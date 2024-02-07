@@ -1,0 +1,5 @@
+.env
+data/
+storage/
+openai
+__pycache__/
