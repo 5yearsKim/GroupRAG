@@ -31,7 +31,6 @@ text_splitter = RecursiveCharacterTextSplitter(
 )
 
 
-
 @app.get("/")
 def read_root():
     return {"Hello": "World"}
@@ -91,6 +90,7 @@ class RespondBody(BaseModel):
 
 @app.post('/bot/respond')
 async def respond(body: RespondBody):
+
     messages = list(map(message_to_dict, body.messages))
 
     if len(messages) == 0:
@@ -100,6 +100,8 @@ async def respond(body: RespondBody):
     is_rag = checker.check_rag(short_end_messages)
 
     messages = cut_messages(messages, max_len=1000, max_turn=8)
+
+    # print('messages:', messages)
 
     if is_rag:
         query = messages[-1]['content']
@@ -117,7 +119,7 @@ async def respond(body: RespondBody):
 
         정보: {" / ".join(infos)}
         """
-                
+
         messages.insert(0, {"role": "system", "content": guide})
 
         response_streamer = generator.generate(messages)

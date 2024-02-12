@@ -28,7 +28,7 @@ class OpenAIGenerator:
                 if content:
                     text += content
                 wrapped = {
-                    "content": chunk.choices[0].delta.content,
+                    "chunk": chunk.choices[0].delta.content,
                     "text": text,
                     "status": "done" if finish_reason == "stop" else "progress"
                 }
