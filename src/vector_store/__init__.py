@@ -1,1 +1,1 @@
-from .vector_store import VectorStore
+from .vector_store import VectorStore, Point
