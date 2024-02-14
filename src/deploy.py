@@ -70,6 +70,9 @@ async def create_context(body: CreateContextBody):
     vector_store.upsert(id=body.id, vector=embedded)
     return {"id": body.id, "context": body.context}
 
+class GroupT(BaseModel):
+    id: int
+    name: str
 
 class MessageT(BaseModel):
     role: Literal['user', 'bot', 'system']
@@ -83,7 +86,7 @@ def message_to_dict(message: MessageT):
     return {"role": role, "content": content}
 
 class RespondBody(BaseModel):
-    group_id: int
+    group: GroupT 
     user_id: int
     messages: list[MessageT]
 
@@ -91,6 +94,7 @@ class RespondBody(BaseModel):
 @app.post('/bot/respond')
 async def respond(body: RespondBody):
 
+    group = body.group
     messages = list(map(message_to_dict, body.messages))
 
     if len(messages) == 0:
@@ -107,14 +111,14 @@ async def respond(body: RespondBody):
         query = messages[-1]['content']
         vectors = embedder.encode([query])
 
-        retrieved = vector_store.search(body.group_id, vectors[0], limit=3, score_threshold=0.25)
+        retrieved = vector_store.search(body.group.id, vectors[0], limit=3, score_threshold=0.25)
 
         infos: list[str] = []
         for i, point in enumerate(retrieved):
             infos.append(f"{i + 1}. {point.payload['content']}")
 
         guide = f"""
-        너의 이름은 '가십바오', 가십거리를 이야기 해주는 챗봇이야. 유저들에게는 항상 반말로 대답해주되 구어체로 대답해줘. ~다. 로 끝나는 말투는 금지.
+        너의 이름은 '가십바오', 그룹 '{group.name}'의 가십거리를 이야기 해주는 챗봇이야. 유저들에게는 항상 반말로 대답해주되 구어체로 대답해줘. ~다. 로 끝나는 말투는 금지.
         유저가 물어보는 질문에는 다음 정보를 기반으로 대답해줘. 정보가 없으면 모른다고 대답해줘. 답변은 50자를 넘지 않게 간결하게.
 
         정보: {" / ".join(infos)}
