@@ -12,11 +12,10 @@ class Point:
 
 
 class VectorStore:
-    def __init__(self, namespace: str='test'):
+    def __init__(self, qdrant_url, namespace: str='test'):
         self.namespace = namespace
         self.client = QdrantClient(
-            host='localhost',
-            port=6333
+            url=qdrant_url
         )
 
     def upsert(self, point: Point):

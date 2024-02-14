@@ -1,8 +1,5 @@
-from dotenv import load_dotenv
-load_dotenv()
-
+from config import QDRANT_URL, QDRANT_NAMESPACE, PORT
 from typing import Union, Literal
-import os
 from fastapi import FastAPI
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
@@ -20,7 +17,7 @@ from utils import cut_messages
 
 app = FastAPI()
 
-vector_store = VectorStore(namespace='gossip_dev')
+vector_store = VectorStore(QDRANT_URL, namespace=QDRANT_NAMESPACE)
 # embedding_fn = SentenceTransformer('all-MiniLM-L6-v2')
 # embedding_fn = SentenceTransformer('jhgan/ko-sroberta-multitask')
 embedder = OpenAIEmbedder()
@@ -34,7 +31,6 @@ text_splitter = RecursiveCharacterTextSplitter(
 @app.get("/")
 def read_root():
     return {"Hello": "World"}
-
 
 class CreateKnowledgeBody(BaseModel):
     id: int
@@ -70,6 +66,7 @@ async def create_context(body: CreateContextBody):
     vector_store.upsert(id=body.id, vector=embedded)
     return {"id": body.id, "context": body.context}
 
+
 class GroupT(BaseModel):
     id: int
     name: str
@@ -89,6 +86,7 @@ class RespondBody(BaseModel):
     group: GroupT 
     user_id: int
     messages: list[MessageT]
+
 
 
 @app.post('/bot/respond')
@@ -152,7 +150,11 @@ async def generate(body: GenerateBody):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8010, reload=True, log_level="debug")
+    uvicorn.run(app, host="0.0.0.0", port=PORT, reload=True, log_level="debug")
 '''
-uvicorn deploy:app --host=0.0.0.0 --port=8010 --log-level=debug --reload
+prod:
+uvicorn deploy:app --host=0.0.0.0 --port=8010
+
+dev:
+uvicorn deploy:app --host=0.0.0.0 --port=8020 --log-level=debug --reload
 '''
