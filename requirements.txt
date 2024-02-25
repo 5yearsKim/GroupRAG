@@ -2,6 +2,9 @@ python-dotenv
 langchain
 langchain-openai
 openai
-llama-index
-sentence-transformers
+# sentence-transformers
 qdrant-client
+fastapi
+uvicorn
+python-dotenv
+sse_starlette
