@@ -1,4 +1,3 @@
-from config import QDRANT_URL, QDRANT_NAMESPACE, PORT
 from typing import Union, Literal
 from fastapi import FastAPI
 from fastapi.responses import StreamingResponse
@@ -13,6 +12,7 @@ from embedder import OpenAIEmbedder
 from rag_checker import OpenAIChecker
 from generator import OpenAIGenerator
 from sse_starlette.sse import EventSourceResponse
+from config import QDRANT_URL, QDRANT_NAMESPACE, PORT
 from utils import cut_messages
 
 app = FastAPI()

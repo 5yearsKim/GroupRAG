@@ -1,6 +1,7 @@
-from dotenv import load_dotenv
-load_dotenv()
+from dotenv import load_dotenv, dotenv_values, find_dotenv
+load_dotenv(find_dotenv(), override=True)
 import os
+
 
 STAGE: str = os.getenv('STAGE', 'dev')
 
