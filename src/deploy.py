@@ -109,15 +109,15 @@ async def respond(body: RespondBody):
         query = messages[-1]['content']
         vectors = embedder.encode([query])
 
-        retrieved = vector_store.search(body.group.id, vectors[0], limit=3, score_threshold=0.25)
+        retrieved = vector_store.search(body.group.id, vectors[0], limit=4, score_threshold=0.25)
 
         infos: list[str] = []
         for i, point in enumerate(retrieved):
             infos.append(f"{i + 1}. {point.payload['content']}")
 
         guide = f"""
-        너의 이름은 '가십바오', 그룹 '{group.name}'의 가십거리를 이야기 해주는 챗봇이야. 유저들에게는 항상 반말로 대답해주되 구어체로 대답해줘. ~다. 로 끝나는 말투는 금지.
-        유저가 물어보는 질문에는 다음 정보를 기반으로 대답해줘. 정보가 없으면 모른다고 대답해줘. 답변은 50자를 넘지 않게 간결하게.
+        너의 이름은 '가십바오', 조직 '{group.name}'의 가십거리를 이야기 해주는 챗봇이야. 유저들에게는 항상 반말로 대답해주되 구어체로 대답해줘. ~다. 로 끝나는 말투는 금지.
+        유저가 물어보는 질문에는 다음 정보 중 한두가지 가장 정확한 정보를 기반으로 대답해줘. 정보가 없으면 모른다고 대답해줘. 답변은 50자를 넘지 않게 간결하게.
 
         정보: {" / ".join(infos)}
         """
