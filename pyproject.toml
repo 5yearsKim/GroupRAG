@@ -1,0 +1,25 @@
+[tool.poetry]
+name = "lang-gossip"
+version = "0.1.0"
+description = ""
+authors = ["5yearsKim <hypothesis22@naver.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+python-dotenv = "^1.0.1"
+langchain = "^0.1.11"
+sse-starlette = "^2.0.0"
+fastapi = "^0.110.0"
+openai = "^1.13.3"
+langchain-openai = "^0.0.8"
+uvicorn = "^0.27.1"
+qdrant-client = "^1.7.3"
+
+
+[tool.poetry.group.dev.dependencies]
+mypy = "^1.8.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

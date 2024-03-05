@@ -1,6 +1,7 @@
 import openai
 from asyncio import sleep
 import json
+from typing import Iterable
 
 class OpenAIGenerator:
     def __init__(self):
@@ -15,7 +16,7 @@ class OpenAIGenerator:
         )
         return stream
 
-    def generate(self, messages: list[dict]) -> str:
+    def generate(self, messages: list[dict]) -> Iterable[str]:
         stream = self._generate_stream(messages)
 
         async def response_streamer():

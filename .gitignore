@@ -3,3 +3,5 @@ data/
 storage/
 openai
 __pycache__/
+
+.venv/
