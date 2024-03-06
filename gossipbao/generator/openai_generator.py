@@ -1,25 +1,23 @@
 import openai
 from asyncio import sleep
-import json
-from typing import Iterable
+from typing import Iterable, AsyncIterable, Any
+from .base import BaseGenerator
+from ..schema import Message, StreamOutput 
 
-class OpenAIGenerator:
-    def __init__(self):
+class OpenAIGenerator(BaseGenerator):
+    def __init__(self) -> None:
         self.o_client = openai.OpenAI()
         self.model = "gpt-3.5-turbo-0125"
 
-    def _generate_stream(self, messages: list[dict]):
-        stream = self.o_client.chat.completions.create(
+
+    def generate_stream(self, messages: list[Message]) -> AsyncIterable[StreamOutput]:
+        stream: Any = self.o_client.chat.completions.create(
             model=self.model,
-            messages=messages,
+            messages=[m.to_openai() for m in messages], # type: ignore
             stream=True,
         )
-        return stream
 
-    def generate(self, messages: list[dict]) -> Iterable[str]:
-        stream = self._generate_stream(messages)
-
-        async def response_streamer():
+        async def response_streamer() -> AsyncIterable[StreamOutput]:
             text: str = ''
 
             for chunk in stream:
@@ -28,14 +26,14 @@ class OpenAIGenerator:
                 content = chunk.choices[0].delta.content
                 if content:
                     text += content
-                wrapped = {
-                    "chunk": chunk.choices[0].delta.content,
-                    "text": text,
-                    "status": "done" if finish_reason == "stop" else "progress"
-                }
+                wrapped = StreamOutput(
+                    chunk=chunk.choices[0].delta.content or '',
+                    text=text,
+                    status="done" if finish_reason == "stop" else "progress" 
+                )
                 await sleep(0.05)
                 
                 # yield text
-                yield f"data: {json.dumps(wrapped, ensure_ascii=False)}"
+                yield wrapped
 
         return response_streamer()

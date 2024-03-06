@@ -3,7 +3,7 @@ from .base_embedder import BaseEmbedder
 
 
 class OpenAIEmbedder(BaseEmbedder):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.o_client = openai.OpenAI()
         self.model = "text-embedding-3-small"

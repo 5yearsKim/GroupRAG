@@ -1,36 +1,40 @@
 from config import QDRANT_URL, QDRANT_NAMESPACE, PORT
-from typing import Union, Literal
+from typing import Union, Literal, AsyncIterable
 from fastapi import FastAPI
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse 
 from pydantic import BaseModel
 # from sentence_transformers import SentenceTransformer
 import uuid
 
 
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from vector_store import VectorStore, Point
 from embedder import OpenAIEmbedder
 from rag_checker import OpenAIChecker
 from generator import OpenAIGenerator
+from gossipbao import GossipBao
+from gossipbao.schema import Group, Message, MessageRole, Point
 from sse_starlette.sse import EventSourceResponse
 from utils import cut_messages
 
 app = FastAPI()
 
-vector_store = VectorStore(QDRANT_URL, namespace=QDRANT_NAMESPACE)
+
+bao = GossipBao(generator_type='openai')
+
+vector_store = bao.vector_store
 # embedding_fn = SentenceTransformer('all-MiniLM-L6-v2')
 # embedding_fn = SentenceTransformer('jhgan/ko-sroberta-multitask')
-embedder = OpenAIEmbedder()
-checker = OpenAIChecker()
-generator = OpenAIGenerator()
+embedder = bao.embedder
+
 text_splitter = RecursiveCharacterTextSplitter(
     chunk_size=1000, chunk_overlap=100, add_start_index=True
 )
 
 
+
 @app.get("/")
-def read_root():
-    return {"Hello": "World"}
+def health_check() -> dict[str, str]:
+    return {"status": "Healthy!"}
 
 class CreateKnowledgeBody(BaseModel):
     id: int
@@ -38,11 +42,14 @@ class CreateKnowledgeBody(BaseModel):
     group_id: int
     user_id: int
 
-@app.post('/knowledge')
-async def create_knowledge(body: CreateKnowledgeBody):
+class CreateKnowledgeRsp(BaseModel):
+    success: bool
+
+@app.post('/knowledge', response_model=CreateKnowledgeRsp)
+async def create_knowledge(body: CreateKnowledgeBody) -> CreateKnowledgeRsp:
     chunks = text_splitter.split_text(body.content)
 
-    vectors= embedder.encode(chunks)
+    vectors = embedder.encode(chunks)
 
     points: list[Point] = []
     for i, (vector, chunk) in enumerate(zip(vectors, chunks)):
@@ -51,7 +58,9 @@ async def create_knowledge(body: CreateKnowledgeBody):
         point = Point(id=point_id, vector=vector, payload=payload)
         points.append(point)
 
-    return vector_store.upsert_many(points)
+    vector_store.upsert_many(points)
+
+    return CreateKnowledgeRsp(success=True)
 
 
 class CreateContextBody(BaseModel):
@@ -59,91 +68,39 @@ class CreateContextBody(BaseModel):
     context: str
     group_id: int
 
-
-@app.post('/contexts')
-async def create_context(body: CreateContextBody):
-    embedded = embedding_fn.encode(body.context)
-    vector_store.upsert(id=body.id, vector=embedded)
-    return {"id": body.id, "context": body.context}
-
-
-class GroupT(BaseModel):
+class CreateContextRsp(BaseModel):
     id: int
-    name: str
+    context: str
 
-class MessageT(BaseModel):
-    role: Literal['user', 'bot', 'system']
-    content: str
 
-def message_to_dict(message: MessageT):
-    role: str = message.role
-    if role == 'bot':
-        role = 'assistant'
-    content = message.content
-    return {"role": role, "content": content}
+@app.post('/contexts', response_model=CreateContextRsp)
+async def create_context(body: CreateContextBody) -> CreateContextRsp:
+    embedded = embedder.encode([body.context])
+    vector_store.upsert(id=body.id, vector=embedded)
+    return CreateContextRsp(id=body.id, context=body.context)
+
 
 class RespondBody(BaseModel):
-    group: GroupT 
+    group: Group 
     user_id: int
-    messages: list[MessageT]
+    messages: list[Message]
 
 
 
 @app.post('/bot/respond')
-async def respond(body: RespondBody):
-
+async def respond(body: RespondBody) -> EventSourceResponse:
     group = body.group
-    messages = list(map(message_to_dict, body.messages))
-
-    if len(messages) == 0:
-        messages.append({"role": "user", "content": "안녕"})
+    messages = body.messages
 
     short_end_messages = cut_messages(messages, max_len=300, max_turn=3)
-    is_rag = checker.check_rag(short_end_messages)
 
-    messages = cut_messages(messages, max_len=1000, max_turn=8)
+    stream = bao.respond(short_end_messages, group)
 
-    # print('messages:', messages)
+    async def response_streamer() -> AsyncIterable[str]:
+        async for s_out in stream:
+            yield f'data: {s_out}' 
 
-    if is_rag:
-        query = messages[-1]['content']
-        vectors = embedder.encode([query])
-
-        retrieved = vector_store.search(body.group.id, vectors[0], limit=4, score_threshold=0.25)
-
-        infos: list[str] = []
-        for i, point in enumerate(retrieved):
-            infos.append(f"{i + 1}. {point.payload['content']}")
-
-        guide = f"""
-        너의 이름은 '가십바오', 조직 '{group.name}'의 가십거리를 이야기 해주는 챗봇이야. 유저들에게는 항상 반말로 대답해주되 구어체로 대답해줘. ~다. 로 끝나는 말투는 금지.
-        유저가 물어보는 질문에는 다음 정보 중 한두가지 가장 정확한 정보를 기반으로 대답해줘. 정보가 없으면 모른다고 대답해줘. 답변은 50자를 넘지 않게 간결하게.
-
-        정보: {" / ".join(infos)}
-        """
-
-        messages.insert(0, {"role": "system", "content": guide})
-
-        response_streamer = generator.generate(messages)
-        return EventSourceResponse(response_streamer)
-    else:
-        messages.insert(0, {"role": "system", "content": "너의 이름은 \'가십바오\', 가십거리를 이야기 해주는 챗봇이야. 유저들에게는 항상 반말로 대답해줘."})
-        response_streamer = generator.generate(messages)
-        return EventSourceResponse(response_streamer)
-
-
-class GenerateBody(BaseModel):
-    messages: list[MessageT]
-
-@app.post('/bot/generate')
-async def generate(body: GenerateBody):
-    messages = list(map(message_to_dict, body.messages))
-    
-    messages.append({"role": "system", "content": "반말로 대답해줘."})
-
-    response_streamer = generator.generate(messages)
-
-    return EventSourceResponse(response_streamer)
+    return EventSourceResponse(response_streamer) # type: ignore
 
 
 

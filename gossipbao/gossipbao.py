@@ -1,27 +1,41 @@
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from typing import Iterable
+from typing import AsyncIterable, Literal
 
 from .rag_checker import OpenAIChecker
-from .generator import OpenAIGenerator
+from .generator import BaseGenerator, OpenAIGenerator, GeminiGenerator, ClaudeGenerator
 from .embedder import OpenAIEmbedder
 from .vector_store import VectorStore
 from .utils import cut_messages
 from .config import QDRANT_URL, QDRANT_NAMESPACE, PORT
+from .schema import Group, Message, MessageRole, StreamOutput 
+
+GeneratorCand = Literal['openai', 'gemini', 'claude']
 
 class GossipBao:
-    def __init__(self):
+    def __init__(
+        self,
+        generator_type: GeneratorCand='openai',
+    ) -> None:
+        self.generator = self._get_generator(generator_type)
         self.embedder = OpenAIEmbedder()
-        self.generator = OpenAIGenerator()
         self.vector_store = VectorStore(QDRANT_URL, namespace=QDRANT_NAMESPACE)
         self.checker = OpenAIChecker()
-        self.text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=1000, chunk_overlap=100, add_start_index=True
-        )
 
+    
+    def _get_generator(self, generator_type: GeneratorCand) -> BaseGenerator:
+        if generator_type == 'openai':
+            return OpenAIGenerator()
+        elif generator_type == 'gemini':
+            return GeminiGenerator()
+        elif generator_type == 'claude':
+            return ClaudeGenerator()
+        else:
+            raise ValueError(f"Unsupported generator type: {generator_type}")
 
-    def respond(self, messages: list[dict]) -> Iterable[str]:
+    def respond(self, messages: list[Message], group: Group) -> AsyncIterable[StreamOutput]:
         if len(messages) == 0:
-            messages.append({"role": "user", "content": "안녕"})
+            messages.append(
+                Message(role=MessageRole.USER, content="안녕"),
+            )
 
         short_end_messages = cut_messages(messages, max_len=300, max_turn=3)
         is_rag = self.checker.check_rag(short_end_messages)
@@ -31,10 +45,10 @@ class GossipBao:
         # print('messages:', messages)
 
         if is_rag:
-            query = messages[-1]['content']
+            query = messages[-1].content
             vectors = self.embedder.encode([query])
 
-            retrieved = self.vector_store.search(body.group.id, vectors[0], limit=4, score_threshold=0.25)
+            retrieved = self.vector_store.search(group.id, vectors[0], limit=4, score_threshold=0.25)
 
             infos: list[str] = []
             for i, point in enumerate(retrieved):
@@ -47,13 +61,13 @@ class GossipBao:
             정보: {" / ".join(infos)}
             """
 
-            messages.insert(0, {"role": "system", "content": guide})
+            messages.insert(0, Message(role=MessageRole.SYSTEM, content=guide))
 
-            return self.generator.generate(messages)
-
+            return self.generator.generate_stream(messages)
         else:
-            messages.insert(0, {"role": "system", "content": "너의 이름은 \'가십바오\', 가십거리를 이야기 해주는 챗봇이야. 유저들에게는 항상 반말로 대답해줘."})
-            return self.generator.generate(messages)
+            prompt = "너의 이름은 \'가십바오\', 가십거리를 이야기 해주는 챗봇이야. 유저들에게는 항상 반말로 대답해줘."
+            messages.insert(0, Message(role=MessageRole.SYSTEM, content=prompt))
+            return self.generator.generate_stream(messages)
 
 
 

@@ -1,5 +1,6 @@
+from ..schema import Message, MessageRole
 import openai
-
+from typing import Any
 
 class OpenAIChecker:
     def __init__(self, max_len: int = 300, max_turn: int=3):
@@ -7,23 +8,23 @@ class OpenAIChecker:
         self.max_len = max_len
         self.max_turn = max_turn
     
-    def check_rag(self, messages: list[dict]) -> bool:
+    def check_rag(self, messages: list[Message]) -> bool:
         new_messages = messages.copy()
-        system_message = {
-            "role": "system",
-            "content": """마지막 유저의 말이 정보를 묻는 질문이야? 여부를 O, X 로 대답해줘."""
-        }
+        system_message = Message(
+            role=MessageRole.SYSTEM,
+            content="마지막 유저의 말이 정보를 묻는 질문이야? 여부를 O, X 로 대답해줘."
+        )
         new_messages.append(system_message)
 
         rsp = self.o_client.chat.completions.create(
             model="gpt-3.5-turbo-0125",
-            messages=new_messages,
+            messages=[m.to_openai() for m in new_messages], # type: ignore
             stream=False,
             temperature=0.
         )
-        return rsp.choices[0].message.content == "O"
+        return rsp.choices[0].message.content == "O" # type: ignore
 
-    def check_action(self, messages: list[dict]):
+    def check_action(self, messages: list[Message]) -> str:
         prompt = '\n'.join([
             f'대화: {str(messages)}', 
             '위 대화를 참조해서 어떤 Commands 를 사용해야 하는지 골라줘. 너의 역할은 사용자와 대화하면서 정보를 기억하고, 필요한 정보를 찾아서 대답해줄 수 있어.',
@@ -53,21 +54,21 @@ You operate within the following constraints:
         print(prompt)
         new_messages = messages.copy()
         # new_messages = []
-        system_message = {
-            "role": "system",
-            "content": prompt
-        }
+        system_message = Message(
+            role=MessageRole.SYSTEM,
+            content=prompt
+        )
         new_messages.append(system_message)
 
 
         rsp = self.o_client.chat.completions.create(
             model="gpt-3.5-turbo-0125",
-            messages=new_messages,
+            messages=new_messages, # type: ignore
             stream=False,
             temperature=0.
         )
 
-        return rsp.choices[0].message
+        return rsp.choices[0].message # type: ignore
 
 
 
@@ -87,6 +88,6 @@ if __name__ == "__main__":
         # {"role": "user", "content": "어제 뭐했어"},
         {"role": "user", "content": "김현우는 코딩을 진짜 잘하는 사람이래. "},
     ]
-    action = checker.check_action(messages)
+    # action = checker.check_action(messages)
 
-    print(action)
+    # print(action)
