@@ -1,35 +1,26 @@
 from typing import AsyncIterable, Literal
 
 from .rag_checker import OpenAIChecker
-from .generator import BaseGenerator, OpenAIGenerator, GeminiGenerator, ClaudeGenerator
-from .embedder import OpenAIEmbedder
-from .vector_store import VectorStore
+from .generator import BaseGenerator
+from .embedder import BaseEmbedder
+from .vector_store import QdrantVectorStore
 from .utils import cut_messages
-from .config import QDRANT_URL, QDRANT_NAMESPACE, PORT
 from .schema import Group, Message, MessageRole, StreamOutput 
 
 GeneratorCand = Literal['openai', 'gemini', 'claude']
 
-class GossipBao:
+class GroupRagger:
     def __init__(
         self,
-        generator_type: GeneratorCand='openai',
+        generator: BaseGenerator,
+        embedder: BaseEmbedder ,
+        vector_store: QdrantVectorStore,
+        checker: OpenAIChecker,
     ) -> None:
-        self.generator = self._get_generator(generator_type)
-        self.embedder = OpenAIEmbedder()
-        self.vector_store = VectorStore(QDRANT_URL, namespace=QDRANT_NAMESPACE)
-        self.checker = OpenAIChecker()
-
-    
-    def _get_generator(self, generator_type: GeneratorCand) -> BaseGenerator:
-        if generator_type == 'openai':
-            return OpenAIGenerator()
-        elif generator_type == 'gemini':
-            return GeminiGenerator()
-        elif generator_type == 'claude':
-            return ClaudeGenerator()
-        else:
-            raise ValueError(f"Unsupported generator type: {generator_type}")
+        self.generator = generator
+        self.embedder = embedder
+        self.vector_store = vector_store
+        self.checker = checker
 
     def respond(self, messages: list[Message], group: Group) -> AsyncIterable[StreamOutput]:
         if len(messages) == 0:
@@ -52,7 +43,7 @@ class GossipBao:
 
             infos: list[str] = []
             for i, point in enumerate(retrieved):
-                infos.append(f"{i + 1}. {point.payload['content']}")
+                infos.append(f"{i + 1}. {point.content}")
 
             guide = f"""
             너의 이름은 '가십바오', 조직 '{group.name}'의 가십거리를 이야기 해주는 챗봇이야. 유저들에게는 항상 반말로 대답해주되 구어체로 대답해줘. ~다. 로 끝나는 말투는 금지.
@@ -68,6 +59,4 @@ class GossipBao:
             prompt = "너의 이름은 \'가십바오\', 가십거리를 이야기 해주는 챗봇이야. 유저들에게는 항상 반말로 대답해줘."
             messages.insert(0, Message(role=MessageRole.SYSTEM, content=prompt))
             return self.generator.generate_stream(messages)
-
-
 

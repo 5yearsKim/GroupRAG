@@ -1,14 +1,14 @@
+from typing import Iterable
 
 import google.generativeai as genai
-from ..config import GOOGLE_API_KEY
-from typing import AsyncIterable
+
 from .base import BaseGenerator
-from ..schema import Message, StreamOutput 
+from ..schema import Message, StreamOutput
 
 
 class GeminiGenerator(BaseGenerator):
-    def __init__(self) -> None:
-        genai.configure(api_key=GOOGLE_API_KEY)
+    def __init__(self, api_key: str) -> None:
+        genai.configure(api_key=api_key)
         self.model = genai.GenerativeModel('gemini-pro')
 
 
@@ -17,13 +17,13 @@ class GeminiGenerator(BaseGenerator):
 
         return prompt + '\n'.join([f'{m.role.name}: {m.content}' for m in messages])
 
-    def generate_stream(self, messages: list[Message]) -> AsyncIterable[StreamOutput]:
+    def generate_stream(self, messages: list[Message]) -> Iterable[StreamOutput]:
 
         prompt = self._convert_messages_to_prompt(messages)
 
         response_stream = self.model.generate_content(prompt, stream=True)
-        
-        async def response_streamer() -> AsyncIterable[StreamOutput]:
+       
+        def response_streamer() -> Iterable[StreamOutput]:
             text = ''
             for chunk in response_stream:
                 text += chunk.text
@@ -39,5 +39,4 @@ class GeminiGenerator(BaseGenerator):
                 status='done'
             )
 
-        return response_streamer() 
-
+        return response_streamer()

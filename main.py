@@ -1,10 +1,10 @@
-from gossipbao import GossipBao
-from gossipbao.schema import Message, MessageRole, Group
+from group_ragger import GroupRagger
+from group_ragger.schema import Message, MessageRole, Group
 
 
 
 async def test_respond() -> None:
-    bao = GossipBao( generator_type='claude')
+    ragger = GroupRagger( generator_type='claude')
 
     messages= [
         Message(role=MessageRole.USER, content="안녕")
@@ -12,7 +12,7 @@ async def test_respond() -> None:
 
     group = Group(id=1, name="test")
 
-    rsp_stream = bao.respond(messages, group)
+    rsp_stream = ragger.respond(messages, group)
 
     async for rsp in rsp_stream:
         print(rsp)

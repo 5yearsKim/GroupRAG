@@ -1,23 +1,25 @@
+from typing import Iterable, Any
+from time import sleep
+
 import openai
-from asyncio import sleep
-from typing import Iterable, AsyncIterable, Any
+
 from .base import BaseGenerator
 from ..schema import Message, StreamOutput 
 
 class OpenAIGenerator(BaseGenerator):
-    def __init__(self) -> None:
-        self.o_client = openai.OpenAI()
+    def __init__(self, api_key: str) -> None:
+        self.o_client = openai.OpenAI(api_key=api_key)
         self.model = "gpt-3.5-turbo-0125"
 
 
-    def generate_stream(self, messages: list[Message]) -> AsyncIterable[StreamOutput]:
+    def generate_stream(self, messages: list[Message]) -> Iterable[StreamOutput]:
         stream: Any = self.o_client.chat.completions.create(
             model=self.model,
             messages=[m.to_openai() for m in messages], # type: ignore
             stream=True,
         )
 
-        async def response_streamer() -> AsyncIterable[StreamOutput]:
+        def response_streamer() -> Iterable[StreamOutput]:
             text: str = ''
 
             for chunk in stream:
@@ -31,7 +33,7 @@ class OpenAIGenerator(BaseGenerator):
                     text=text,
                     status="done" if finish_reason == "stop" else "progress" 
                 )
-                await sleep(0.05)
+                sleep(0.05)
                 
                 # yield text
                 yield wrapped

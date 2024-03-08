@@ -1,14 +1,15 @@
-from pydantic import BaseModel
 from enum import Enum
 from typing import Literal
+
+from pydantic import BaseModel
 
 
 
 class MessageRole(Enum):
-    USER = 1
-    BOT = 2
-    SYSTEM = 3
-    FUNCTION = 4
+    USER = 'user'
+    BOT = 'bot'
+    SYSTEM = 'system'
+    FUNCTION = 'function'
 
 
 class Message(BaseModel):

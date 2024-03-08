@@ -3,8 +3,8 @@ import openai
 from typing import Any
 
 class OpenAIChecker:
-    def __init__(self, max_len: int = 300, max_turn: int=3):
-        self.o_client = openai.OpenAI()
+    def __init__(self, api_key: str, max_len: int = 300, max_turn: int=3):
+        self.o_client = openai.OpenAI(api_key=api_key)
         self.max_len = max_len
         self.max_turn = max_turn
     
@@ -69,25 +69,3 @@ You operate within the following constraints:
         )
 
         return rsp.choices[0].message # type: ignore
-
-
-
-
-
-
-
-if __name__ == "__main__":
-    from dotenv import load_dotenv
-    load_dotenv()
-
-    checker = OpenAIChecker()
-    messages = [
-        {"role": "assistant", "content": "가십바오 alskfnasdlkfn;sfknsf;la ns;flaksnd falksd nflknf lsknflsdknflskn"},
-        {"role": "user", "content": "안녕하세요."},
-        {"role": "assistant", "content": "안녕."},
-        # {"role": "user", "content": "어제 뭐했어"},
-        {"role": "user", "content": "김현우는 코딩을 진짜 잘하는 사람이래. "},
-    ]
-    # action = checker.check_action(messages)
-
-    # print(action)
