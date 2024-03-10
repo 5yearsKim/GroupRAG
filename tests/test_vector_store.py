@@ -3,14 +3,16 @@ set_python_path()
 
 from group_ragger.vector_store import QdrantVectorStore
 from group_ragger.embedder import OpenAIEmbedder
-from group_ragger.config import QDRANT_URL, QDRANT_NAMESPACE
+from config import QDRANT_URL, QDRANT_NAMESPACE, OPENAI_API_KEY
 from group_ragger.schema import Point
 
 store = QdrantVectorStore(
     namespace=QDRANT_NAMESPACE,
     qdrant_url=QDRANT_URL,
 )
-embedder = OpenAIEmbedder()
+embedder = OpenAIEmbedder(
+    api_key=OPENAI_API_KEY
+)
 
 def test_get() -> None:
     vector = store.get("05ca5c45-8a10-494a-88b1-a68196a84667")
