@@ -10,7 +10,6 @@ class Point(BaseModel):
     content: str 
     group_id: int|str
     meta: dict[str, Any]|None = None
-
     
     def __repr__(self) -> str:
         return f"Point(id={self.id}, content={self.content}, group_id={self.group_id})"
@@ -32,7 +31,7 @@ class Point(BaseModel):
 
 class ScoredPoint(BaseModel):
     id: int|str
-    content: str 
+    content: str
     group_id: int|str
     meta: dict[str, Any]|None = None
     score: float

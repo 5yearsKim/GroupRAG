@@ -5,7 +5,6 @@ from group_ragger.vector_store import QdrantVectorStore
 from group_ragger.embedder import OpenAIEmbedder
 from group_ragger.config import QDRANT_URL, QDRANT_NAMESPACE
 from group_ragger.schema import Point
-from config import OPEN_
 
 store = QdrantVectorStore(
     namespace=QDRANT_NAMESPACE,

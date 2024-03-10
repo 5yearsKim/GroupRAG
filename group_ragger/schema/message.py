@@ -16,6 +16,9 @@ class Message(BaseModel):
     role: MessageRole
     content: str
 
+    def to_dict(self) -> dict[str, str]:
+        return {'role': self.role.value, 'content': self.content}
+
     def to_openai(self) -> dict[str, str]:
         role = ''
         if self.role == MessageRole.USER:

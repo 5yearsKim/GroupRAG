@@ -1,1 +1,1 @@
-from .group_ragger import GroupRagger 
+from .group_ragger import GroupRagger

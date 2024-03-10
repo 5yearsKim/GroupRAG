@@ -57,9 +57,14 @@ class QdrantVectorStore(BaseVectorStore):
                 point.to_qdrant() for point in points
             ]
         )
-        
-
-    def search(self, group_id: int, query_vector: list[float], limit: int=10, score_threshold: float=0.) -> list[ScoredPoint]:
+     
+    def search(
+        self,
+        group_id: int,
+        query_vector: list[float],
+        limit: int=10,
+        score_threshold: float=0.,
+    ) -> list[ScoredPoint]:
         retrieved = self.client.search(
             collection_name=self.namespace,
             query_vector=query_vector,

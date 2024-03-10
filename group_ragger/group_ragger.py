@@ -1,20 +1,19 @@
-from typing import AsyncIterable, Literal
+from typing import Iterable
 
 from .rag_checker import OpenAIChecker
 from .generator import BaseGenerator
 from .embedder import BaseEmbedder
-from .vector_store import QdrantVectorStore
+from .vector_store import BaseVectorStore
 from .utils import cut_messages
-from .schema import Group, Message, MessageRole, StreamOutput 
+from .schema import Group, Message, MessageRole, StreamOutput
 
-GeneratorCand = Literal['openai', 'gemini', 'claude']
 
 class GroupRagger:
     def __init__(
         self,
         generator: BaseGenerator,
         embedder: BaseEmbedder ,
-        vector_store: QdrantVectorStore,
+        vector_store: BaseVectorStore,
         checker: OpenAIChecker,
     ) -> None:
         self.generator = generator
@@ -22,7 +21,10 @@ class GroupRagger:
         self.vector_store = vector_store
         self.checker = checker
 
-    def respond(self, messages: list[Message], group: Group) -> AsyncIterable[StreamOutput]:
+    def respond(self, messages: list[Message], group: Group) -> Iterable[StreamOutput]:
+        """
+        Get the messages from the user and respond to them with RAG
+        """
         if len(messages) == 0:
             messages.append(
                 Message(role=MessageRole.USER, content="안녕"),
@@ -59,4 +61,19 @@ class GroupRagger:
             prompt = "너의 이름은 \'가십바오\', 가십거리를 이야기 해주는 챗봇이야. 유저들에게는 항상 반말로 대답해줘."
             messages.insert(0, Message(role=MessageRole.SYSTEM, content=prompt))
             return self.generator.generate_stream(messages)
+
+    def trigger(self, messages: list[Message], group: Group) -> Iterable[StreamOutput]:
+        """
+        Start a new chat given the messages
+        """
+        prompt = """
+        너의 이름은 \'가십바오\', 가십거리를 이야기 해주는 챗봇이야.
+        다음 원칙을 지켜줘.
+        1. 유저들에게는 항상 반말로 대답한다.
+       
+        마지막 대화를 나눈지 시간이 꽤 지났으니 지금은 유저와의 대화를 새로 시작해줘.
+        """
+        messages.insert(0, Message(role=MessageRole.SYSTEM, content=prompt))
+        return self.generator.generate_stream(messages)
+
 

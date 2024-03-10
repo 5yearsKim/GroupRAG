@@ -1,4 +1,5 @@
-from typing import Iterable
+from typing import AsyncIterable
+import json
 from fastapi import FastAPI
 from pydantic import BaseModel
 # from sentence_transformers import SentenceTransformer
@@ -43,14 +44,25 @@ text_splitter = RecursiveCharacterTextSplitter(
 def health_check() -> dict[str, str]:
     return {"status": "Healthy!"}
 
+class ListKnowledgeRsp(BaseModel):
+    points: list[Point]
+    next_cursor: str|None
+
+@app.get('/knowledge', response_model=ListKnowledgeRsp)
+async def get_knowledge(group_id: int|None=None, cursor: str|None=None ) -> ListKnowledgeRsp:
+    retrieved, next_cursor = ragger.vector_store.get_many(group_id=group_id, offset=cursor)
+    return ListKnowledgeRsp(points=retrieved, next_cursor=next_cursor)
+
+
 class CreateKnowledgeBody(BaseModel):
-    id: int
+    id: int|None=None
     content: str
     group_id: int
-    user_id: int
+    user_id: int|None=None
 
 class CreateKnowledgeRsp(BaseModel):
     success: bool
+
 
 @app.post('/knowledge', response_model=CreateKnowledgeRsp)
 async def create_knowledge(body: CreateKnowledgeBody) -> CreateKnowledgeRsp:
@@ -64,6 +76,7 @@ async def create_knowledge(body: CreateKnowledgeBody) -> CreateKnowledgeRsp:
             vector=vector,
             content=chunk,
             group_id=body.group_id,
+            meta={'user_id': body.user_id, 'knowledge_id': body.id},
         )
         for vector, chunk in zip(vectors, chunks)
     ]
@@ -85,11 +98,32 @@ async def respond(body: RespondBody) -> EventSourceResponse:
 
     stream = ragger.respond(messages, group)
 
-    def response_streamer() -> Iterable[str]:
+    def response_streamer() -> AsyncIterable[str]:
         for s_out in stream:
-            yield f'data: {s_out.to_dict()}'
+            yield f'data: {json.dumps(s_out.to_dict(), ensure_ascii=False)}'
 
     return EventSourceResponse(response_streamer())
+
+
+class TriggerBody(BaseModel):
+    group: Group
+    user_id: int
+    messages: list[Message]
+
+
+@app.post('/bot/trigger')
+async def trigger(body: TriggerBody) -> EventSourceResponse:
+    group, messages = body.group, body.messages
+
+    stream = ragger.trigger(messages, group)
+
+    def response_streamer() -> AsyncIterable[str]:
+        for s_out in stream:
+            yield f'data: {json.dumps(s_out.to_dict(), ensure_ascii=False)}'
+
+    return EventSourceResponse(response_streamer())
+
+
 
 
 

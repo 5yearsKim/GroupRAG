@@ -18,7 +18,6 @@ class ClaudeGenerator(BaseGenerator):
         system_prompt = '\n'.join([m.content for m in system_messages]) 
 
         non_system_messages = list(filter(lambda m: m.role != MessageRole.SYSTEM, messages))
-        
 
         text = ''
         stream_response = self.client.messages.stream(
@@ -31,7 +30,7 @@ class ClaudeGenerator(BaseGenerator):
             ]
         )
 
-        for chunk in stream_response.text_stream:
+        for chunk in stream_response.text_stream: # type: ignore
             text += chunk
             yield StreamOutput(
                 chunk=chunk,
