@@ -70,6 +70,7 @@ QDRANT_URL=
 ### 3. 가상환경 설정
 명령어 `poetry install` 를 입력하여 가상환경을 설정해주세요. poetry가 설치되어 있지 않다면 [여기](https://python-poetry.org/docs/)를 참조해주세요.
 
+<br/>
 
 ### 4. FastAPI 배포하기
 아래 스크립트를 실행하여 FastAPI 를 배포할 수 있어요.
@@ -77,6 +78,8 @@ QDRANT_URL=
 ```shell
 poetry run uvicorn deploy:app --host=0.0.0.0 --port=8010 --log-level=debug --reload
 ```
+
+<br/>
 
 ###  5. (optional) Streamlit app 으로 확인해보기
 Streamlit 앱을 실행해서 RAG 챗봇이 잘 동작하는지 확인해보세요.
@@ -90,6 +93,7 @@ poetry run streamlit run streamlit_app/main.py
 </div>
 
 
+<br/>
 <br/>
 
 ## 🤔 오픈 소스 기여
