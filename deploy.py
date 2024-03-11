@@ -11,11 +11,11 @@ from group_ragger import GroupRagger
 from group_ragger.vector_store import QdrantVectorStore
 from group_ragger.embedder import OpenAIEmbedder
 from group_ragger.rag_checker import OpenAIChecker
-from group_ragger.generator import OpenAIGenerator
+from group_ragger.generator import OpenAIGenerator, ClaudeGenerator
 from group_ragger.schema import Group, Message, Point
 
 from config import (
-    OPENAI_API_KEY,
+    OPENAI_API_KEY, ANTHROPIC_API_KEY,
     QDRANT_URL, QDRANT_NAMESPACE, PORT
 )
 
@@ -23,7 +23,8 @@ from config import (
 app = FastAPI()
 
 embedder = OpenAIEmbedder(api_key=OPENAI_API_KEY)
-generator = OpenAIGenerator(api_key=OPENAI_API_KEY)
+# generator = OpenAIGenerator(api_key=OPENAI_API_KEY)
+generator = ClaudeGenerator(api_key=ANTHROPIC_API_KEY)
 vector_store = QdrantVectorStore(qdrant_url=QDRANT_URL, namespace=QDRANT_NAMESPACE)
 checker = OpenAIChecker(api_key=OPENAI_API_KEY)
 

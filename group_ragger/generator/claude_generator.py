@@ -20,7 +20,7 @@ class ClaudeGenerator(BaseGenerator):
         non_system_messages = list(filter(lambda m: m.role != MessageRole.SYSTEM, messages))
 
         text = ''
-        stream_response = self.client.messages.stream(
+        with self.client.messages.stream(
             model="claude-3-opus-20240229",
             max_tokens=1024,
             temperature=0.2,
@@ -28,17 +28,16 @@ class ClaudeGenerator(BaseGenerator):
             messages=[
                 m.to_claude() for m in non_system_messages # type: ignore
             ]
-        )
-
-        for chunk in stream_response.text_stream: # type: ignore
-            text += chunk
+        ) as stream_response:
+            for chunk in stream_response.text_stream:
+                text += chunk
+                yield StreamOutput(
+                    chunk=chunk,
+                    text=text,
+                    status="progress"
+                )
             yield StreamOutput(
-                chunk=chunk,
+                chunk='',
                 text=text,
-                status="progress"
+                status="done"
             )
-        yield StreamOutput(
-            chunk='',
-            text=text,
-            status="done"
-        )
