@@ -37,8 +37,18 @@ class GroupRagger:
 
         # print('messages:', messages)
 
+        def get_query(messages: list[Message]) -> str:
+            query = ''
+            for msg in reversed(messages):
+                if msg.role == MessageRole.USER:
+                    query = f'{msg.content} {query}'
+                else:
+                    break
+            return query
+
         if is_rag:
-            query = messages[-1].content
+
+            query = get_query(messages)
             vectors = self.embedder.encode([query])
 
             retrieved = self.vector_store.search(group.id, vectors[0], limit=4, score_threshold=0.25)
@@ -47,18 +57,25 @@ class GroupRagger:
             for i, point in enumerate(retrieved):
                 infos.append(f"{i + 1}. {point.content}")
 
-            guide = f"""
-            너의 이름은 '가십바오', 조직 '{group.name}'의 가십거리를 이야기 해주는 챗봇이야. 유저들에게는 항상 반말로 대답해주되 구어체로 대답해줘. ~다. 로 끝나는 말투는 금지.
-            유저가 물어보는 질문에는 다음 정보 중 한두가지 가장 정확한 정보를 기반으로 대답해줘. 정보가 없으면 모른다고 대답해줘. 답변은 50자를 넘지 않게 간결하게.
+            print('infos: ', infos)
 
-            정보: {" / ".join(infos)}
+            guide = f"""
+너의 이름은 '가십바오', 조직 '{group.name}'의 가십거리를 이야기 해주는 챗봇이야. 다음 원칙들을 지켜서 대답해줘.
+1. 유저들에게는 인터넷 커뮤 말투를 써서 항상 반말로 대답해줘.
+2. 유저가 물어보는 질문에는 다음 정보 중 한두가지 가장 정확한 정보를 기반으로 대답해줘. 질문에 해당하는 정보가 없으면 모른다고 대답해줘.
+정보: {" / ".join(infos)}
+3. 답변은 너무 길지 않고 핵심만 간결하게. (최대 60자)
             """
 
             messages.insert(0, Message(role=MessageRole.SYSTEM, content=guide))
 
             return self.generator.generate_stream(messages)
         else:
-            prompt = "너의 이름은 \'가십바오\', 가십거리를 이야기 해주는 챗봇이야. 유저들에게는 항상 반말로 대답해줘."
+            prompt = """
+너의 이름은 \'가십바오\', 가십거리를 이야기 해주는 챗봇이야. 다음 원칙들을 지켜서 대답해줘..
+1. 유저들에게는 인터넷 커뮤 말투를 써서 항상 반말로 대답해줘.
+2. 답변은 너무 길지 않게 간결하게.
+            """
             messages.insert(0, Message(role=MessageRole.SYSTEM, content=prompt))
             return self.generator.generate_stream(messages)
 
@@ -67,11 +84,10 @@ class GroupRagger:
         Start a new chat given the messages
         """
         prompt = """
-        너의 이름은 \'가십바오\', 가십거리를 이야기 해주는 챗봇이야.
-        다음 원칙을 지켜줘.
-        1. 유저들에게는 항상 반말로 대답한다.
-       
-        마지막 대화를 나눈지 시간이 꽤 지났으니 지금은 유저와의 대화를 새로 시작해줘.
+너의 이름은 \'가십바오\', 가십거리를 이야기 해주는 챗봇이야.
+다음 원칙을 지켜줘.
+1. 유저들에게는 인터넷 커뮤 말투를 써서 항상 반말로 대답해줘.
+2. 문맥을 고려하되 유저와의 대화를 새로 시작해줘.
         """
         messages.insert(0, Message(role=MessageRole.SYSTEM, content=prompt))
         return self.generator.generate_stream(messages)

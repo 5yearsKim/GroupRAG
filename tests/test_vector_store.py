@@ -31,9 +31,9 @@ def test_upsert() -> None:
 
 
 def test_search() -> None:
-    sent = '내 이름은 onion이야'
+    sent = '오원주에 대해 알려줘.'
     vector = embedder.encode([sent])[0]
-    found = store.search(group_id=1, query_vector=vector)
+    found = store.search(group_id=3, query_vector=vector)
     print(found)
 
 def test_get_many() -> None:
@@ -45,5 +45,5 @@ def test_get_many() -> None:
 if __name__ == "__main__":
     # test_fetch()
     # test_upsert()
-    # test_search()
-    test_get_many()
+    test_search()
+    # test_get_many()
