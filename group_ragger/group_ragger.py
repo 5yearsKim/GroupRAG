@@ -57,7 +57,7 @@ class GroupRagger:
             for i, point in enumerate(retrieved):
                 infos.append(f"{i + 1}. {point.content}")
 
-            print('infos: ', infos)
+            # print('infos: ', infos)
 
             guide = f"""
 너의 이름은 '가십바오', 조직 '{group.name}'의 가십거리를 이야기 해주는 챗봇이야. 다음 원칙들을 지켜서 대답해줘.

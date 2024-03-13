@@ -37,7 +37,7 @@ def test_search() -> None:
     print(found)
 
 def test_get_many() -> None:
-    points = store.get_many(group_id=2, offset="e8f5b295-838c-4d90-9561-e9901ed4c499")
+    points = store.get_many(group_id=1, knowledge_id=32)
     print(points)
 
 
@@ -45,5 +45,5 @@ def test_get_many() -> None:
 if __name__ == "__main__":
     # test_fetch()
     # test_upsert()
-    test_search()
-    # test_get_many()
+    # test_search()
+    test_get_many()

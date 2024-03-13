@@ -63,6 +63,7 @@ class CreateKnowledgeBody(BaseModel):
 
 class CreateKnowledgeRsp(BaseModel):
     success: bool
+    points: list[Point]
 
 
 @app.post('/knowledge', response_model=CreateKnowledgeRsp)
@@ -84,7 +85,20 @@ async def create_knowledge(body: CreateKnowledgeBody) -> CreateKnowledgeRsp:
 
     vector_store.upsert_many(points)
 
-    return CreateKnowledgeRsp(success=True)
+    return CreateKnowledgeRsp(success=True, points=points)
+
+
+class DeleteKnowledgeRsp(BaseModel):
+    success: bool
+    points: list[Point]
+
+@app.delete('/knowledge/{knowledge_id}', response_model=DeleteKnowledgeRsp)
+async def delete_knowledge(knowledge_id: int) -> DeleteKnowledgeRsp:
+    points, _ = vector_store.get_many(knowledge_id=knowledge_id)
+    if not points:
+        return DeleteKnowledgeRsp(success=False, points=[])
+    vector_store.delete_many([point.id for point in points])
+    return DeleteKnowledgeRsp(success=True, points=points)
 
 
 class RespondBody(BaseModel):

@@ -12,7 +12,7 @@ class Point(BaseModel):
     meta: dict[str, Any]|None = None
     
     def __repr__(self) -> str:
-        return f"Point(id={self.id}, content={self.content}, group_id={self.group_id})"
+        return f"Point(id={self.id}, content={self.content}, group_id={self.group_id}), meta={self.meta})"
 
     @staticmethod
     def generate_id() -> str:

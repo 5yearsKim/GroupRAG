@@ -1,6 +1,7 @@
-from qdrant_client import QdrantClient 
-from qdrant_client.http.models import Filter, FieldCondition, MatchValue, Distance, VectorParams
 from typing import Any
+
+from qdrant_client import QdrantClient 
+from qdrant_client.http.models import Filter, FieldCondition, MatchValue, Distance, VectorParams, PointIdsList
 
 from .base import BaseVectorStore
 from ..schema import Point, ScoredPoint, PointFactory
@@ -24,15 +25,22 @@ class QdrantVectorStore(BaseVectorStore):
     def get_many(
         self,
         group_id: int|None=None,
+        knowledge_id: int|None=None,
         limit:int=30,
         offset: str|None=None,
         with_vector:bool=False,
     ) -> tuple[list[Point], str|None]:
+
+        must_filter: list[Any] = []
+        if group_id is not None:
+            must_filter.append(FieldCondition(key='group_id', match=MatchValue(value=group_id)))
+        if knowledge_id is not None:
+            must_filter.append(FieldCondition(key='knowledge_id', match=MatchValue(value=knowledge_id)))
+
         fetched, next_cursor= self.client.scroll(
             collection_name=self.namespace,
             scroll_filter=Filter(
-                must=[FieldCondition(key='group_id', match=MatchValue(value=group_id))]
-                    if group_id else [],
+                must=must_filter
             ),
             with_vectors=with_vector,
             limit=limit,
@@ -57,7 +65,13 @@ class QdrantVectorStore(BaseVectorStore):
                 point.to_qdrant() for point in points
             ]
         )
-     
+
+    def delete_many(self, ids: list[int|str]) -> None:
+        self.client.delete(
+            collection_name=self.namespace,
+            points_selector=PointIdsList(points=ids)
+        )
+ 
     def search(
         self,
         group_id: int,
