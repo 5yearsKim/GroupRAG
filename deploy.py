@@ -23,8 +23,8 @@ from config import (
 app = FastAPI()
 
 embedder = OpenAIEmbedder(api_key=OPENAI_API_KEY)
-# generator = OpenAIGenerator(api_key=OPENAI_API_KEY)
-generator = ClaudeGenerator(api_key=ANTHROPIC_API_KEY)
+generator = OpenAIGenerator(api_key=OPENAI_API_KEY)
+# generator = ClaudeGenerator(api_key=ANTHROPIC_API_KEY)
 vector_store = QdrantVectorStore(qdrant_url=QDRANT_URL, namespace=QDRANT_NAMESPACE)
 checker = OpenAIChecker(api_key=OPENAI_API_KEY)
 
