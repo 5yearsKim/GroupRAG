@@ -1,7 +1,7 @@
-from typing import Any
+from typing import Any, Literal
 
 from qdrant_client import QdrantClient 
-from qdrant_client.http.models import Filter, FieldCondition, MatchValue, Distance, VectorParams, PointIdsList
+from qdrant_client.http.models import Filter, FieldCondition, MatchValue, PointIdsList, OrderBy, Direction
 
 from .base import BaseVectorStore
 from ..schema import Point, ScoredPoint, PointFactory
@@ -29,6 +29,7 @@ class QdrantVectorStore(BaseVectorStore):
         limit:int=30,
         offset: str|None=None,
         with_vector:bool=False,
+        order_by: Literal["asc", "desc"]|None=None,
     ) -> tuple[list[Point], str|None]:
 
         must_filter: list[Any] = []
@@ -45,6 +46,10 @@ class QdrantVectorStore(BaseVectorStore):
             with_vectors=with_vector,
             limit=limit,
             offset=offset,
+            order_by=OrderBy(
+                key='timestamp',
+                direction=Direction.ASC if order_by == 'asc' else Direction.DESC,
+            )
         )
 
         return [PointFactory.from_qdrant(point, with_vector=False) for point in fetched], next_cursor # type: ignore

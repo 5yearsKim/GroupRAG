@@ -3,7 +3,6 @@ import json
 from fastapi import FastAPI
 from pydantic import BaseModel
 # from sentence_transformers import SentenceTransformer
-from langchain.text_splitter import RecursiveCharacterTextSplitter
 from sse_starlette.sse import EventSourceResponse
 
 
@@ -15,6 +14,7 @@ from group_ragger.generator import OpenAIGenerator, ClaudeGenerator
 from group_ragger.schema import Group, Message, Point
 
 from config import (
+    STAGE,
     OPENAI_API_KEY, ANTHROPIC_API_KEY,
     QDRANT_URL, QDRANT_NAMESPACE, PORT
 )
@@ -33,12 +33,10 @@ ragger = GroupRagger(
     generator=generator,
     embedder=embedder,
     vector_store=vector_store,
-    checker=checker
+    checker=checker,
+    verbose=(STAGE=="dev"),
 )
 
-text_splitter = RecursiveCharacterTextSplitter(
-    chunk_size=1000, chunk_overlap=100, add_start_index=True
-)
 
 
 @app.get("/")
@@ -68,22 +66,8 @@ class CreateKnowledgeRsp(BaseModel):
 
 @app.post('/knowledge', response_model=CreateKnowledgeRsp)
 async def create_knowledge(body: CreateKnowledgeBody) -> CreateKnowledgeRsp:
-    chunks = text_splitter.split_text(body.content)
 
-    vectors = embedder.encode(chunks)
-
-    points = [
-        Point(
-            id=Point.generate_id(),
-            vector=vector,
-            content=chunk,
-            group_id=body.group_id,
-            meta={'user_id': body.user_id, 'knowledge_id': body.id},
-        )
-        for vector, chunk in zip(vectors, chunks)
-    ]
-
-    vector_store.upsert_many(points)
+    points = ragger.memorize(body.content, body.group_id, user_id=body.user_id, knowledge_id=body.id)
 
     return CreateKnowledgeRsp(success=True, points=points)
 
@@ -94,10 +78,7 @@ class DeleteKnowledgeRsp(BaseModel):
 
 @app.delete('/knowledge/{knowledge_id}', response_model=DeleteKnowledgeRsp)
 async def delete_knowledge(knowledge_id: int) -> DeleteKnowledgeRsp:
-    points, _ = vector_store.get_many(knowledge_id=knowledge_id)
-    if not points:
-        return DeleteKnowledgeRsp(success=False, points=[])
-    vector_store.delete_many([point.id for point in points])
+    points = ragger.forget(knowledge_id)
     return DeleteKnowledgeRsp(success=True, points=points)
 
 

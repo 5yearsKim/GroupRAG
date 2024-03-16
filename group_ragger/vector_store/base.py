@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import Literal
 
 from ..schema import Point, ScoredPoint
 
@@ -20,6 +20,7 @@ class BaseVectorStore(ABC):
         limit:int=30,
         offset: str|None=None,
         with_vector:bool=False,
+        order_by: Literal["asc", "desc"]|None=None,
     ) -> tuple[list[Point], str|None]:
         raise NotImplementedError
 

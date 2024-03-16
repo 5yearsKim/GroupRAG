@@ -1,18 +1,28 @@
-from ..schema import Message, MessageRole
+import json
 import openai
-from typing import Any
+from .base import BaseRagChecker
+from ..schema import Message, MessageRole, RetrievalInput
 
-class OpenAIChecker:
+class OpenAIChecker(BaseRagChecker):
     def __init__(self, api_key: str, max_len: int = 300, max_turn: int=3):
         self.o_client = openai.OpenAI(api_key=api_key)
         self.max_len = max_len
         self.max_turn = max_turn
     
-    def check_rag(self, messages: list[Message]) -> bool:
+    def check_rag(self, messages: list[Message]) -> RetrievalInput:
         new_messages = messages.copy()
         system_message = Message(
             role=MessageRole.SYSTEM,
-            content="마지막 유저의 말이 정보를 묻는 질문이야? 여부를 O, X 로 대답해줘."
+            content= """
+다음 대화에 따라 AI 어시스턴트가 대답을 해줘야 하는데 RAG(Retrieval) 를 해야 하는지 json 으로 결과를 알려줘.
+답변은 json 으로 다음 형식과 같아야 해.
+json 형식: {
+should_retrieve: boolean, // 마지막 유저 발화가 정보를 묻는 질문이라면 RAG 를 해야하므로 true, 아니라면 false
+query?: string  // should_retrieve 가 false 면 query 는 없어도 되고, true 면 retrieve 할 때 필요한 키워드를 적어줘.
+}
+그럼 대화를 참조해서 RAG 를 해야하는지 알려줘.
+
+"""
         )
         new_messages.append(system_message)
 
@@ -22,7 +32,9 @@ class OpenAIChecker:
             stream=False,
             temperature=0.
         )
-        return rsp.choices[0].message.content == "O" # type: ignore
+
+        return self.parse_response(rsp.choices[0].message.content) # type: ignore
+
 
     def check_action(self, messages: list[Message]) -> str:
         prompt = '\n'.join([
