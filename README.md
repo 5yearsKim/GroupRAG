@@ -19,6 +19,48 @@
 
 **GroupRAG** 는 **가십바오**에 사용되는 챗봇 엔진이에요. 사용자들이 입력한 그룹 기반의 정보를 처리하여 정보를 기반으로 대화를 생성해주는 [RAG](https://www.promptingguide.ai/techniques/rag)(Retrieval Augmented Generation) 작업을 담당하고 있어요. 
 
+<br/>
+
+가십바오에 대해서 궁금하면 다음 링크를 참조해주세요!
+<br/>
+**가십바오 주소**: https://gossipbao.com
+
+
+<br/>
+<br/>
+
+## 🤔 무슨 프로젝트인가?
+그룹에 해당하는 정보를 기반으로 1. 정보를 기억하고 2. 먼저 말을 걸거나 대답해주는 채팅 시스템이에요. 코드를 보면 어떤 기능의 프로젝트인지 이해가 쉬울 것 같아요.
+
+
+```python
+from group_ragger import GroupRagger
+from group_ragger.schema import Group, Message, MessageRole
+
+ragger = GroupRagger()
+
+group = Group(id=1, name="레드벨벳 팬클럽")
+
+""" 그룹의 정보 기억하기 """
+ragger.memorize('레드벨벳 슬기가 최근 "하이 슬기"라는 유튜브 채널을 개설했어.', group.id)
+# -> True
+
+
+""" 그룹의 기반 정보를 활용해서 대답해주기 """
+ragger.respond([
+  Message(MessageRole.BOT, '안녕~ 레드벨벳에 관해 궁금한게 있어?'),
+  Message(MessageRole.USER, '요즘 슬기에 관해 재밌는 소식 있어?'),
+], group)
+# -> 슬기가 최근에 "하이 슬기"라는 유튜브 채널을 개설한 것 같아! 너무 기대된다 :)
+
+""" 그룹 기반 정보를 활용해서 먼저 말걸어주기 """
+ragger.trigger([], group)
+#-> 안녕~ 혹시 레드벨벳에 관한 이야기나 가십거리가 있으면 물어봐! 혹시 슬기가 개설한 유튜브 채널에 대해서 궁금하진 않아?
+
+""" 그룹 기반 정보 잊어버리기 """
+ragger.forget('(knowledge-id)')
+# -> True
+```
 
 <br/>
 <br/>
@@ -96,10 +138,12 @@ poetry run streamlit run streamlit_app/main.py
 <br/>
 <br/>
 
-## 🤔 오픈 소스 기여
+## 👐 오픈 소스 기여
 
-**가십바오** 및 **GroupRAG** 프로젝트는 모두 오픈소스로 진행되는 프로젝트에요. 프론트엔드, 백엔드, 서버, AI 작업을 모두 필요로 하고 있고 함께 서비스를 개선해나갈 Contributor 를 찾고 있어요.
+코드의 오류나 개선점이 있다면 [Issue](https://github.com/5yearsKim/GroupRAG/issues) 에 남겨주세요.
+
+코드를 개선하여 오픈 소스에 참여하고 싶으신 분들은 [Pull Request](https://github.com/5yearsKim/GroupRAG/pulls) 를 등록해주세요.
 
 
-함께 오픈소스 프로젝트를 만들어 나가실 분들은 아래 오픈 카톡을 통해서 문의 주세요.
+그 외에 함께 **가십바오/GroupRAG** 프로젝트를 만들어 나가실 분들은 아래 오픈 카톡을 통해서 문의 주세요.
 https://open.kakao.com/o/gF1cxkfg 

@@ -3,7 +3,6 @@ import json
 from fastapi import FastAPI
 from pydantic import BaseModel
 # from sentence_transformers import SentenceTransformer
-from langchain.text_splitter import RecursiveCharacterTextSplitter
 from sse_starlette.sse import EventSourceResponse
 
 
@@ -11,11 +10,12 @@ from group_ragger import GroupRagger
 from group_ragger.vector_store import QdrantVectorStore
 from group_ragger.embedder import OpenAIEmbedder
 from group_ragger.rag_checker import OpenAIChecker
-from group_ragger.generator import OpenAIGenerator
+from group_ragger.generator import OpenAIGenerator, ClaudeGenerator
 from group_ragger.schema import Group, Message, Point
 
 from config import (
-    OPENAI_API_KEY,
+    STAGE,
+    OPENAI_API_KEY, ANTHROPIC_API_KEY,
     QDRANT_URL, QDRANT_NAMESPACE, PORT
 )
 
@@ -24,6 +24,7 @@ app = FastAPI()
 
 embedder = OpenAIEmbedder(api_key=OPENAI_API_KEY)
 generator = OpenAIGenerator(api_key=OPENAI_API_KEY)
+# generator = ClaudeGenerator(api_key=ANTHROPIC_API_KEY)
 vector_store = QdrantVectorStore(qdrant_url=QDRANT_URL, namespace=QDRANT_NAMESPACE)
 checker = OpenAIChecker(api_key=OPENAI_API_KEY)
 
@@ -32,12 +33,10 @@ ragger = GroupRagger(
     generator=generator,
     embedder=embedder,
     vector_store=vector_store,
-    checker=checker
+    checker=checker,
+    verbose=(STAGE=="dev"),
 )
 
-text_splitter = RecursiveCharacterTextSplitter(
-    chunk_size=1000, chunk_overlap=100, add_start_index=True
-)
 
 
 @app.get("/")
@@ -62,28 +61,25 @@ class CreateKnowledgeBody(BaseModel):
 
 class CreateKnowledgeRsp(BaseModel):
     success: bool
+    points: list[Point]
 
 
 @app.post('/knowledge', response_model=CreateKnowledgeRsp)
 async def create_knowledge(body: CreateKnowledgeBody) -> CreateKnowledgeRsp:
-    chunks = text_splitter.split_text(body.content)
 
-    vectors = embedder.encode(chunks)
+    points = ragger.memorize(body.content, body.group_id, user_id=body.user_id, knowledge_id=body.id)
 
-    points = [
-        Point(
-            id=Point.generate_id(),
-            vector=vector,
-            content=chunk,
-            group_id=body.group_id,
-            meta={'user_id': body.user_id, 'knowledge_id': body.id},
-        )
-        for vector, chunk in zip(vectors, chunks)
-    ]
+    return CreateKnowledgeRsp(success=True, points=points)
 
-    vector_store.upsert_many(points)
 
-    return CreateKnowledgeRsp(success=True)
+class DeleteKnowledgeRsp(BaseModel):
+    success: bool
+    points: list[Point]
+
+@app.delete('/knowledge/{knowledge_id}', response_model=DeleteKnowledgeRsp)
+async def delete_knowledge(knowledge_id: int) -> DeleteKnowledgeRsp:
+    points = ragger.forget(knowledge_id)
+    return DeleteKnowledgeRsp(success=True, points=points)
 
 
 class RespondBody(BaseModel):

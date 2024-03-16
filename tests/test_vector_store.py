@@ -31,13 +31,13 @@ def test_upsert() -> None:
 
 
 def test_search() -> None:
-    sent = '내 이름은 onion이야'
+    sent = '오원주에 대해 알려줘.'
     vector = embedder.encode([sent])[0]
-    found = store.search(group_id=1, query_vector=vector)
+    found = store.search(group_id=3, query_vector=vector)
     print(found)
 
 def test_get_many() -> None:
-    points = store.get_many(group_id=2, offset="e8f5b295-838c-4d90-9561-e9901ed4c499")
+    points = store.get_many(group_id=1, knowledge_id=32)
     print(points)
 
 
