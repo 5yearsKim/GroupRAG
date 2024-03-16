@@ -62,8 +62,7 @@ class GroupRagger:
         if self.verbose:
             self.logger.info("RAG input: %s", rag_input)
 
-        if rag_input.should_retrieve:
-
+        if rag_input.should_retrieve and rag_input.query:
             query = rag_input.query
             vectors = self.embedder.encode([query])
 
