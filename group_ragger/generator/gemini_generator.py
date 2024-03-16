@@ -21,7 +21,11 @@ class GeminiGenerator(BaseGenerator):
 
         prompt = self._convert_messages_to_prompt(messages)
 
-        response_stream = self.model.generate_content(prompt, stream=True)
+        response_stream = self.model.generate_content(
+            prompt,
+            safety_settings={'HARASSMENT': 'block_none'},
+            stream=True
+        )
        
         def response_streamer() -> Iterable[StreamOutput]:
             text = ''

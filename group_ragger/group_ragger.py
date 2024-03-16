@@ -38,10 +38,16 @@ class GroupRagger:
         self.logger.addHandler(stream_handler)
         self.logger.setLevel(logging.INFO)
 
-    def respond(self, messages: list[Message], group: Group) -> Iterable[StreamOutput]:
+    def respond(self,
+        messages: list[Message],
+        group: Group,
+        generator: BaseGenerator|None = None,
+    ) -> Iterable[StreamOutput]:
         """
         Get the messages from the user and respond to them with RAG
         """
+        _generator = generator or self.generator
+
         if len(messages) == 0:
             messages.append(
                 Message(role=MessageRole.USER, content="안녕"),
@@ -80,7 +86,7 @@ class GroupRagger:
 
             messages.insert(0, Message(role=MessageRole.SYSTEM, content=guide))
 
-            return self.generator.generate_stream(messages)
+            return _generator.generate_stream(messages)
         else:
             prompt = """
 너의 이름은 \'가십바오\', 가십거리를 이야기 해주는 챗봇이야. 다음 원칙들을 지켜서 대답해줘..
@@ -88,16 +94,18 @@ class GroupRagger:
 2. 답변은 너무 길지 않게 간결하게.
             """
             messages.insert(0, Message(role=MessageRole.SYSTEM, content=prompt))
-            return self.generator.generate_stream(messages)
+            return _generator.generate_stream(messages)
 
     def trigger(self,
         messages: list[Message],
         group: Group,
         gossip_ratio: float = 0.6,
+        generator: BaseGenerator|None = None,
     ) -> Iterable[StreamOutput]:
         """
         Start a new chat given the messages
         """
+        _generator = generator or self.generator
         prompt = """
 너의 이름은 \'가십바오\', 가십거리를 이야기 해주는 챗봇이야.
 다음 원칙을 지켜줘.
@@ -135,7 +143,7 @@ class GroupRagger:
             self.logger.info("Trigger prompt: %s", prompt)
         
         messages.insert(0, Message(role=MessageRole.SYSTEM, content=prompt))
-        return self.generator.generate_stream(messages)
+        return _generator.generate_stream(messages)
 
     def memorize(self,
         content: str,
