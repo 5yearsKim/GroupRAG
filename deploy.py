@@ -1,4 +1,4 @@
-from typing import AsyncIterable
+from typing import AsyncIterable, Literal
 import json
 from fastapi import FastAPI
 from pydantic import BaseModel
@@ -10,12 +10,12 @@ from group_ragger import GroupRagger
 from group_ragger.vector_store import QdrantVectorStore
 from group_ragger.embedder import OpenAIEmbedder
 from group_ragger.rag_checker import OpenAIChecker
-from group_ragger.generator import OpenAIGenerator, ClaudeGenerator
+from group_ragger.generator import BaseGenerator, OpenAIGenerator, ClaudeGenerator, GeminiGenerator
 from group_ragger.schema import Group, Message, Point
 
 from config import (
     STAGE,
-    OPENAI_API_KEY, ANTHROPIC_API_KEY,
+    OPENAI_API_KEY, ANTHROPIC_API_KEY, GOOGLE_API_KEY,
     QDRANT_URL, QDRANT_NAMESPACE, PORT
 )
 
@@ -23,20 +23,31 @@ from config import (
 app = FastAPI()
 
 embedder = OpenAIEmbedder(api_key=OPENAI_API_KEY)
-generator = OpenAIGenerator(api_key=OPENAI_API_KEY)
-# generator = ClaudeGenerator(api_key=ANTHROPIC_API_KEY)
 vector_store = QdrantVectorStore(qdrant_url=QDRANT_URL, namespace=QDRANT_NAMESPACE)
 checker = OpenAIChecker(api_key=OPENAI_API_KEY)
 
+openai_generator = OpenAIGenerator(api_key=OPENAI_API_KEY)
+claude_generator = ClaudeGenerator(api_key=ANTHROPIC_API_KEY)
+gemini_generator = GeminiGenerator(api_key=GOOGLE_API_KEY)
+
+GeneratorT = Literal["openai", "claude", "gemini"]
+
+def get_generator(generator_type: GeneratorT|None) -> BaseGenerator|None:
+    if generator_type == "openai":
+        return openai_generator
+    if generator_type == "claude":
+        return claude_generator
+    if generator_type == "gemini":
+        return gemini_generator
+    return None
 
 ragger = GroupRagger(
-    generator=generator,
+    generator=claude_generator,
     embedder=embedder,
     vector_store=vector_store,
     checker=checker,
     verbose=(STAGE=="dev"),
 )
-
 
 
 @app.get("/")
@@ -86,13 +97,20 @@ class RespondBody(BaseModel):
     group: Group
     user_id: int
     messages: list[Message]
+    generator_type: GeneratorT|None=None
 
 
 @app.post('/bot/respond')
 async def respond(body: RespondBody) -> EventSourceResponse:
-    group, messages = body.group, body.messages
+    group, messages, generator_type = \
+        body.group, body.messages, body.generator_type
 
-    stream = ragger.respond(messages, group)
+    generator: BaseGenerator|None = get_generator(generator_type)
+
+    print(body)
+    print('generator_type:', generator_type, generator)
+
+    stream = ragger.respond(messages, group, generator=generator)
 
     def response_streamer() -> AsyncIterable[str]:
         for s_out in stream:
@@ -105,13 +123,17 @@ class TriggerBody(BaseModel):
     group: Group
     user_id: int
     messages: list[Message]
+    generator_type: GeneratorT|None=None
 
 
 @app.post('/bot/trigger')
 async def trigger(body: TriggerBody) -> EventSourceResponse:
-    group, messages = body.group, body.messages
+    group, messages, generator_type = \
+        body.group, body.messages, body.generator_type
 
-    stream = ragger.trigger(messages, group)
+    generator: BaseGenerator|None = get_generator(generator_type)
+
+    stream = ragger.trigger(messages, group, generator=generator)
 
     def response_streamer() -> AsyncIterable[str]:
         for s_out in stream:
