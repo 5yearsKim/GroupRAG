@@ -105,8 +105,8 @@ class GroupRagger:
         Start a new chat given the messages
         """
         _generator = generator or self.generator
-        prompt = """
-너의 이름은 \'가십바오\', 가십거리를 이야기 해주는 챗봇이야.
+        prompt = f"""
+너의 이름은 \'가십바오\', {group.name}(조직 이름)에 관한 가십거리를 이야기 해주는 챗봇이야.
 다음 원칙을 지켜줘.
 """
         prompt_rule: list[str] = [
@@ -121,6 +121,8 @@ class GroupRagger:
         # on average, 60% of the time, the bot will start with gossip
         if random.uniform(0, 1) < gossip_ratio:
             knowledges, _ = self.vector_store.get_many(group_id=group.id, limit=20, order_by="desc")
+
+            self.logger.info("knowledges: %s", knowledges)
 
             gossip_k = 1 
             if len(knowledges) > gossip_k:

@@ -13,9 +13,9 @@ class GeminiGenerator(BaseGenerator):
 
 
     def _convert_messages_to_prompt(self, messages: list[Message]) -> str:
-        prompt = '너는 아래 대화에서 bot의 역할을 해야해. 다음 대화에 이어질 적절한 답변을 해줘.\n\n'
+        prompt = '너는 아래 대화에서 bot 이야. 다음 대화에 이어질 적절한 답변을 해줘.\n\n'
 
-        return prompt + '\n'.join([f'{m.role.name}: {m.content}' for m in messages])
+        return prompt + '\n'.join([f'{m.role.name}: {m.content}' for m in messages]) + '\nbot: '
 
     def generate_stream(self, messages: list[Message]) -> Iterable[StreamOutput]:
 

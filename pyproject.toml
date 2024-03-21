@@ -9,7 +9,6 @@ readme = "README.md"
 python = "^3.10"
 python-dotenv = "^1.0.1"
 langchain = "^0.1.11"
-sse-starlette = "^2.0.0"
 fastapi = "^0.110.0"
 openai = "^1.13.3"
 langchain-openai = "^0.0.8"
@@ -21,6 +20,7 @@ requests = "^2.31.0"
 sseclient-py = "^1.8.0"
 qdrant-client = "^1.8.0"
 logging = "^0.4.9.6"
+sse-starlette = "^2.0.0"
 
 
 [tool.poetry.group.dev.dependencies]

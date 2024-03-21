@@ -1,6 +1,8 @@
 from typing import AsyncIterable, Literal
 import json
+import asyncio
 from fastapi import FastAPI
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 # from sentence_transformers import SentenceTransformer
 from sse_starlette.sse import EventSourceResponse
@@ -107,16 +109,14 @@ async def respond(body: RespondBody) -> EventSourceResponse:
 
     generator: BaseGenerator|None = get_generator(generator_type)
 
-    print(body)
-    print('generator_type:', generator_type, generator)
-
     stream = ragger.respond(messages, group, generator=generator)
 
-    def response_streamer() -> AsyncIterable[str]:
+    async def response_streamer() -> AsyncIterable[str]:
         for s_out in stream:
             yield f'data: {json.dumps(s_out.to_dict(), ensure_ascii=False)}'
 
     return EventSourceResponse(response_streamer())
+    # return StreamingResponse(response_streamer(), headers={'Content-Type': 'text/event-stream'})
 
 
 class TriggerBody(BaseModel):
@@ -135,13 +135,23 @@ async def trigger(body: TriggerBody) -> EventSourceResponse:
 
     stream = ragger.trigger(messages, group, generator=generator)
 
-    def response_streamer() -> AsyncIterable[str]:
+    async def response_streamer() -> AsyncIterable[str]:
         for s_out in stream:
             yield f'data: {json.dumps(s_out.to_dict(), ensure_ascii=False)}'
 
     return EventSourceResponse(response_streamer())
+    # return StreamingResponse(response_streamer(), headers={'Content-Type': 'text/event-stream'})
 
 
+@app.get('/test-stream')
+async def stream_test() -> StreamingResponse:
+    async def response_streamer() -> AsyncIterable[str]:
+        for i in range(30):
+            yield f'data: {json.dumps({"i": i})}'
+            await asyncio.sleep(0.5)
+
+    return StreamingResponse(response_streamer(),\
+         headers={'Content-Type': 'text/event-stream'})
 
 
 
